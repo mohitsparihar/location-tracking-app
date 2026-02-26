@@ -64,6 +64,7 @@ final class MainViewModel: ObservableObject {
     func logout() {
         authStore.logout()
         tracker.stopTracking()
+        locationStore.clearAll()
     }
 
     func syncPendingLocations() {

@@ -59,6 +59,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     fun logout() {
         viewModelScope.launch {
             container.authRepository.logout()
+            container.locationRepository.clearAll()
         }
     }
 

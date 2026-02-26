@@ -39,6 +39,11 @@ final class LocationStore: ObservableObject {
         save()
     }
 
+    func clearAll() {
+        locations.removeAll()
+        save()
+    }
+
     private func load() {
         guard let data = try? Data(contentsOf: storageURL) else { return }
         guard let decoded = try? JSONDecoder().decode([StoredLocation].self, from: data) else { return }

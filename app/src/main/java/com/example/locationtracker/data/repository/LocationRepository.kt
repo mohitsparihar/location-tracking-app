@@ -168,4 +168,10 @@ class LocationRepository(
             null
         }
     }
+
+    suspend fun clearAll() {
+        withContext(Dispatchers.IO) {
+            dao.deleteAll()
+        }
+    }
 }

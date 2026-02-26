@@ -18,4 +18,7 @@ interface LocationDao {
 
     @Query("UPDATE locations SET uploaded = 1 WHERE id = :id")
     suspend fun markUploaded(id: Long)
+
+    @Query("DELETE FROM locations")
+    suspend fun deleteAll()
 }
