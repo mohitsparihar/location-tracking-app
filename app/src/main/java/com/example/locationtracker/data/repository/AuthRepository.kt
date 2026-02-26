@@ -85,6 +85,12 @@ class AuthRepository(
         }
     }
 
+    suspend fun setToken(token: String) {
+        context.dataStore.edit { prefs: MutablePreferences ->
+            prefs[tokenKey] = token
+        }
+    }
+
     suspend fun getTokenNow(): String? {
         return tokenFlow.firstOrNull()
     }

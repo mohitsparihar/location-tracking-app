@@ -108,6 +108,13 @@ class LocationRepository(
             return false
         }
 
+        if (response.isSuccessful) {
+            val newToken = response.body()?.data?.token
+            if (!newToken.isNullOrBlank()) {
+                authRepository.setToken(newToken)
+            }
+        }
+
         return response.isSuccessful
     }
 
@@ -121,6 +128,13 @@ class LocationRepository(
         if (response.code() in setOf(401, 403, 498)) {
             authRepository.logout()
             return false
+        }
+
+        if (response.isSuccessful) {
+            val newToken = response.body()?.data?.token
+            if (!newToken.isNullOrBlank()) {
+                authRepository.setToken(newToken)
+            }
         }
 
         return response.isSuccessful

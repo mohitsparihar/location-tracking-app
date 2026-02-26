@@ -47,3 +47,11 @@ data class UploadLocationRequest(
 data class UploadLocationBatchRequest(
     val items: List<UploadLocationRequest>
 )
+
+data class UploadLocationResponse(
+    val data: UploadLocationResponseData?
+)
+
+data class UploadLocationResponseData(
+    val token: String?
+)

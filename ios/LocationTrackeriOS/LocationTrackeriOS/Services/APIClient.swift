@@ -16,9 +16,17 @@ enum APIClientError: LocalizedError {
 }
 
 enum UploadResult {
-    case success
+    case success(token: String?)
     case unauthorized
     case failure
+}
+
+struct UploadResponse: Decodable {
+    let data: UploadResponseData?
+}
+
+struct UploadResponseData: Decodable {
+    let token: String?
 }
 
 struct DeviceInfo {
@@ -107,7 +115,7 @@ final class APIClient {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.httpBody = try JSONEncoder().encode(body)
 
-        let (_, response) = try await session.data(for: request)
+        let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             return .failure
         }
@@ -116,7 +124,11 @@ final class APIClient {
             return .unauthorized
         }
 
-        return (200..<300).contains(http.statusCode) ? .success : .failure
+        if (200..<300).contains(http.statusCode) {
+            let body = try? JSONDecoder().decode(UploadResponse.self, from: data)
+            return .success(token: body?.data?.token)
+        }
+        return .failure
     }
 
     private func map(location: StoredLocation, deviceInfo: DeviceInfo) -> UploadLocationRequest {

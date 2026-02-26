@@ -67,6 +67,7 @@ final class LocationTrackerManager: NSObject, ObservableObject {
 
     func syncPendingLocations() async {
         guard let token = authStore.token else { return }
+
         let pending = locationStore.pendingLocations()
         guard !pending.isEmpty else { return }
 
@@ -83,7 +84,10 @@ final class LocationTrackerManager: NSObject, ObservableObject {
         }
 
         switch result {
-        case .success:
+        case .success(let newToken):
+            if let t = newToken, !t.isEmpty {
+                authStore.setToken(t)
+            }
             let ids = Set(pending.map { $0.id })
             locationStore.markUploaded(ids: ids)
         case .unauthorized:
@@ -168,7 +172,10 @@ final class LocationTrackerManager: NSObject, ObservableObject {
                     deviceInfo: DeviceInfo.current()
                 )
                 switch result {
-                case .success:
+                case .success(let newToken):
+                    if let t = newToken, !t.isEmpty {
+                        authStore.setToken(t)
+                    }
                     locationStore.markUploaded(ids: [saved.id])
                 case .unauthorized:
                     authStore.logout()

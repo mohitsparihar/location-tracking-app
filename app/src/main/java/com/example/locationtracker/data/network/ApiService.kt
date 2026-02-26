@@ -18,12 +18,12 @@ interface ApiService {
         @Url url: String,
         @Header("Authorization") bearerToken: String,
         @Body request: UploadLocationRequest
-    ): Response<Unit>
+    ): Response<UploadLocationResponse>
 
     @POST
     suspend fun uploadLocationBatch(
         @Url url: String,
         @Header("Authorization") bearerToken: String,
         @Body request: UploadLocationBatchRequest
-    ): Response<Unit>
+    ): Response<UploadLocationResponse>
 }
