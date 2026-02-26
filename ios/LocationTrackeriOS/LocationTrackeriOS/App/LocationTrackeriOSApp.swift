@@ -43,6 +43,7 @@ struct LocationTrackeriOSApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView(viewModel: viewModel, tracker: tracker)
+                .preferredColorScheme(.light)
                 .task {
                     _ = try? await UNUserNotificationCenter.current()
                         .requestAuthorization(options: [.alert, .sound])

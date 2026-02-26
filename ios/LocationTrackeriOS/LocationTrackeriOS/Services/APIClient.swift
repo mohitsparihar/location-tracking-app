@@ -53,7 +53,7 @@ final class APIClient {
         self.session = session
     }
 
-    func login(email: String, password: String) async throws -> String {
+    func login(email: String, password: String) async throws -> (token: String, email: String?) {
         let endpoint = ApiConfig.apiBaseURL.appendingPathComponent(ApiConfig.loginPath)
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
@@ -67,19 +67,19 @@ final class APIClient {
 
         let body = try? JSONDecoder().decode(LoginResponse.self, from: data)
         if http.statusCode < 200 || http.statusCode >= 300 {
-            let message = body?.message ?? "Login failed"
+            let message = body?.resolvedData?.message ?? body?.message ?? "Login failed"
             throw APIClientError.response(message)
         }
 
         if body?.status == 401 {
-            throw APIClientError.invalidCredentials(body?.message ?? "Invalid credentials")
+            throw APIClientError.invalidCredentials(body?.resolvedData?.message ?? body?.message ?? "Invalid credentials")
         }
 
-        guard let token = body?.user?.token, !token.isEmpty else {
-            throw APIClientError.invalidCredentials(body?.message ?? "Invalid credentials")
+        guard let token = body?.resolvedData?.token, !token.isEmpty else {
+            throw APIClientError.invalidCredentials(body?.resolvedData?.message ?? body?.message ?? "Invalid credentials")
         }
 
-        return token
+        return (token, body?.resolvedData?.email)
     }
 
     func uploadSingle(location: StoredLocation, token: String, deviceInfo: DeviceInfo) async throws -> UploadResult {

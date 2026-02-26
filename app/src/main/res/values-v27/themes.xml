@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- API 27+: transparent bars, dark icons for light app backgrounds -->
     <style name="Theme.LocationTracker" parent="Theme.AppCompat.DayNight.NoActionBar">
-        <!-- Status bar is transparent on API 35+ (edge-to-edge). App bg is light,
-             so we need dark icons: windowLightStatusBar=true -->
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightNavigationBar">true</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
     </style>
 </resources>

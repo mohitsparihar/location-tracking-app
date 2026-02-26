@@ -20,15 +20,17 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         viewModelScope.launch {
             combine(
                 container.authRepository.isSignedIn,
-                container.locationRepository.observeLocations()
-            ) { signedIn, locations ->
-                Pair(signedIn, locations)
-            }.collect { (signedIn, locations) ->
+                container.locationRepository.observeLocations(),
+                container.authRepository.userEmail
+            ) { signedIn, locations, email ->
+                Triple(signedIn, locations, email)
+            }.collect { (signedIn, locations, email) ->
                 _uiState.update {
                     it.copy(
                         checkingAuth = false,
                         isSignedIn = signedIn,
-                        locations = locations
+                        locations = locations,
+                        userEmail = email
                     )
                 }
             }
@@ -72,7 +74,8 @@ data class UiState(
     val isSignedIn: Boolean = false,
     val loginInProgress: Boolean = false,
     val authError: String? = null,
-    val locations: List<LocationEntity> = emptyList()
+    val locations: List<LocationEntity> = emptyList(),
+    val userEmail: String? = null
 )
 
 class MainViewModelFactory(private val container: AppContainer) : ViewModelProvider.Factory {

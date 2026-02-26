@@ -38,11 +38,13 @@ final class MainViewModel: ObservableObject {
 
         Task {
             do {
-                let token = try await apiClient.login(
-                    email: email.trimmingCharacters(in: .whitespacesAndNewlines),
+                let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+                let result = try await apiClient.login(
+                    email: trimmedEmail,
                     password: password
                 )
-                authStore.setToken(token)
+                authStore.setToken(result.token)
+                authStore.setEmail(result.email ?? trimmedEmail)
                 tracker.startTrackingIfPossible()
                 await tracker.syncPendingLocations()
                 loginInProgress = false

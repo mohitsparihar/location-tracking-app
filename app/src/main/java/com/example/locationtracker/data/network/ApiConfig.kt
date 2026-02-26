@@ -4,6 +4,9 @@ object ApiConfig {
     // Equivalent to EXPO_PUBLIC_API_BASE_URL
     const val API_BASE_URL = "https://beapis-in.staging.geoiq.ai/retailapp/stg/v3/"
 
+    // Full login URL - ensures correct endpoint (Retrofit @Url with relative path can be unreliable)
+    const val LOGIN_URL = "${API_BASE_URL}user/userlogin"
+
     // Equivalent to EXPO_PUBLIC_LOCATION_UPLOAD_URL (full URL)
     const val LOCATION_UPLOAD_URL =
         "https://beapis-in.staging.geoiq.ai/bdapp/stg/v1/bd/locationTracking/updateUserLocation"

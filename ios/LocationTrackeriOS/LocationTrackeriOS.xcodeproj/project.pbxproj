@@ -17,9 +17,11 @@
 		86624A596E87460760FD268C /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8798C75DE2D6878F1F2345EA /* AuthStore.swift */; };
 		9A6D569557CDCF1AF469AC87 /* StoredLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43928B58845AA11DBFEF35A1 /* StoredLocation.swift */; };
 		B95B172AB255831B7BBA78C1 /* MainViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25BC0882B1ECDB7CC7F7AAEB /* MainViewModel.swift */; };
+		F7EBE2D79311A081B3EB0A98 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0085B6B8C5CEAB3BF6412D73 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0085B6B8C5CEAB3BF6412D73 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		10BC71CE14D7C54247756D84 /* LocationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationStore.swift; sourceTree = "<group>"; };
 		126037F2832AF87456D42ED8 /* LocationTrackeriOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationTrackeriOSApp.swift; sourceTree = "<group>"; };
 		25BC0882B1ECDB7CC7F7AAEB /* MainViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewModel.swift; sourceTree = "<group>"; };
@@ -42,6 +44,14 @@
 			path = ViewModels;
 			sourceTree = "<group>";
 		};
+		1790913A6FD1CC7D41C0695C /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				0085B6B8C5CEAB3BF6412D73 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		1F7A2DF0DF408A9B773F96B8 /* Views */ = {
 			isa = PBXGroup;
 			children = (
@@ -56,6 +66,7 @@
 				CA11C8F8889B6ADBE1454106 /* App */,
 				A7B3DC57831CFBC5252121F1 /* Config */,
 				88D99439DB769FD05FE0DDFE /* Models */,
+				1790913A6FD1CC7D41C0695C /* Resources */,
 				BD08BBC59537F1551346D165 /* Services */,
 				103F2B5EF96B4DEDBA4526BF /* ViewModels */,
 				1F7A2DF0DF408A9B773F96B8 /* Views */,
@@ -123,6 +134,7 @@
 			buildConfigurationList = 50768470589E38A3FF0122A4 /* Build configuration list for PBXNativeTarget "LocationTrackeriOS" */;
 			buildPhases = (
 				716296FF6202936274294FFC /* Sources */,
+				C0EB746324C28F229F6B7216 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -167,6 +179,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		C0EB746324C28F229F6B7216 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F7EBE2D79311A081B3EB0A98 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		716296FF6202936274294FFC /* Sources */ = {

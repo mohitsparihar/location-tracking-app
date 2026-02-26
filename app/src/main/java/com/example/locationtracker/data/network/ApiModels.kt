@@ -8,14 +8,20 @@ data class LoginRequest(
 )
 
 data class LoginResponse(
+    @SerializedName("in") val loginData: LoginUser?,
     val user: LoginUser?,
     val message: String?,
     val status: Int?
-)
+) {
+    /** Returns whichever payload the server sent (in or user) */
+    val resolvedData: LoginUser? get() = loginData ?: user
+}
 
 data class LoginUser(
     val token: String?,
-    @SerializedName("is_onboarding_completed") val isOnboardingCompleted: Boolean?
+    val email: String?,
+    @SerializedName("is_onboarding_completed") val isOnboardingCompleted: Boolean?,
+    val message: String?
 )
 
 data class UploadLocationRequest(

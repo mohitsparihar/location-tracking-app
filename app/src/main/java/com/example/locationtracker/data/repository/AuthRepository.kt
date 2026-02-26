@@ -25,6 +25,7 @@ class AuthRepository(
 ) {
     private val signedInKey = booleanPreferencesKey("signed_in")
     private val tokenKey = stringPreferencesKey("token")
+    private val emailKey = stringPreferencesKey("user_email")
 
     val isSignedIn: Flow<Boolean> = context.dataStore.data
         .catch { e ->
@@ -38,10 +39,16 @@ class AuthRepository(
         }
         .map { prefs -> prefs[tokenKey] }
 
+    val userEmail: Flow<String?> = context.dataStore.data
+        .catch { e ->
+            if (e is IOException) emit(emptyPreferences()) else throw e
+        }
+        .map { prefs -> prefs[emailKey] }
+
     suspend fun login(email: String, password: String): Result<Unit> {
         return runCatching {
             val response = apiService.login(
-                url = ApiConfig.LOGIN_PATH,
+                url = ApiConfig.LOGIN_URL,
                 request = LoginRequest(emailId = email, password = password)
             )
 
@@ -53,17 +60,19 @@ class AuthRepository(
             }
 
             if (body?.status == 401) {
-                error(body.message ?: "Invalid credentials")
+                error(body.resolvedData?.message ?: body.message ?: "Invalid credentials")
             }
 
-            val token = body?.user?.token
+            val data = body?.resolvedData
+            val token = data?.token
             if (token.isNullOrBlank()) {
-                error(body?.message ?: "Invalid credentials")
+                error(data?.message ?: body?.message ?: "Invalid credentials")
             }
 
             context.dataStore.edit { prefs: MutablePreferences ->
                 prefs[signedInKey] = true
                 prefs[tokenKey] = token
+                data?.email?.let { prefs[emailKey] = it }
             }
         }
     }
@@ -72,6 +81,7 @@ class AuthRepository(
         context.dataStore.edit { prefs: MutablePreferences ->
             prefs[signedInKey] = false
             prefs.remove(tokenKey)
+            prefs.remove(emailKey)
         }
     }
 
