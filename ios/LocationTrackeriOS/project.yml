@@ -24,6 +24,11 @@ targets:
         NSLocationAlwaysAndWhenInUseUsageDescription: "This app tracks your location in the background to record location points even when not in use."
         NSLocationAlwaysUsageDescription: "This app tracks your location in the background to record location points even when not in use."
         UIBackgroundModes: [location]
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
     settings:
       base:
         PRODUCT_NAME: LocationTrackeriOS

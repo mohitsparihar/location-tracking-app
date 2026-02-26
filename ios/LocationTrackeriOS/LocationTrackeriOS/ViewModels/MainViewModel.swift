@@ -21,6 +21,12 @@ final class MainViewModel: ObservableObject {
         self.apiClient = apiClient
         self.tracker = tracker
 
+        // Forward authStore changes so ContentView re-evaluates isSignedIn
+        authStore.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
         locationStore.$locations
             .receive(on: RunLoop.main)
             .sink { [weak self] in self?.locations = $0 }

@@ -1,0 +1,58 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+
+    <!-- Background circle with gradient -->
+    <path
+        android:pathData="M100,190C149.7,190 190,149.7 190,100C190,50.3 149.7,10 100,10C50.3,10 10,50.3 10,100C10,149.7 50.3,190 100,190Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="10"
+                android:startY="100"
+                android:endX="190"
+                android:endY="100">
+                <item android:offset="0" android:color="#FF9178E9" />
+                <item android:offset="1" android:color="#FFF19089" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Location pin (white) -->
+    <path
+        android:pathData="M100,50C83.43,50 70,63.43 70,80C70,96.57 100,130 100,130C100,130 130,96.57 130,80C130,63.43 116.57,50 100,50Z"
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.95" />
+
+    <!-- Pin center dot with gradient -->
+    <path
+        android:pathData="M100,90C105.52,90 110,85.52 110,80C110,74.47 105.52,70 100,70C94.47,70 90,74.47 90,80C90,85.52 94.47,90 100,90Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="90"
+                android:startY="80"
+                android:endX="110"
+                android:endY="80">
+                <item android:offset="0" android:color="#FF9178E9" />
+                <item android:offset="1" android:color="#FFF19089" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Outer shadow dot -->
+    <path
+        android:pathData="M100,146C104.42,146 108,142.41 108,138C108,133.58 104.42,130 100,130C95.58,130 92,133.58 92,138C92,142.41 95.58,146 100,146Z"
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.6" />
+
+    <!-- Inner dot -->
+    <path
+        android:pathData="M100,142C102.21,142 104,140.21 104,138C104,135.79 102.21,134 100,134C97.79,134 96,135.79 96,138C96,140.21 97.79,142 100,142Z"
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.9" />
+
+</vector>
