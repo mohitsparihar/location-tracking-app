@@ -1,0 +1,33 @@
+name: LocationTrackeriOS
+options:
+  minimumXcodeGenVersion: 2.38.0
+configs:
+  Debug: debug
+  Release: release
+settings:
+  base:
+    PRODUCT_BUNDLE_IDENTIFIER: com.example.locationtrackerios
+    SWIFT_VERSION: 5.9
+    IPHONEOS_DEPLOYMENT_TARGET: 16.0
+targets:
+  LocationTrackeriOS:
+    type: application
+    platform: iOS
+    sources:
+      - path: LocationTrackeriOS
+        excludes:
+          - Resources/Info.plist
+    info:
+      path: LocationTrackeriOS/Resources/Info.plist
+      properties:
+        NSLocationWhenInUseUsageDescription: "This app uses your location to record and upload location points."
+        NSLocationAlwaysAndWhenInUseUsageDescription: "This app tracks your location in the background to record location points even when not in use."
+        NSLocationAlwaysUsageDescription: "This app tracks your location in the background to record location points even when not in use."
+        UIBackgroundModes: [location]
+    settings:
+      base:
+        PRODUCT_NAME: LocationTrackeriOS
+        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+        CODE_SIGN_STYLE: Automatic
+    scheme:
+      testTargets: []
