@@ -16,11 +16,8 @@ final class LocationTrackerManager: NSObject, ObservableObject {
     private let locationStore: LocationStore
     private let apiClient: APIClient
 
-    // Capture every 10 min while moving, every 30 min while stationary.
-    private let movingInterval: TimeInterval = 10 * 60
-    private let stationaryInterval: TimeInterval = 30 * 60
-    // Anything above 0.5 m/s (~1.8 km/h) is considered moving.
-    private let movingSpeedThreshold: Double = 0.5
+    // Capture every 10 min.
+    private let captureInterval: TimeInterval = 10 * 60
     private var lastCaptureDate: Date?
 
     init(authStore: AuthStore, locationStore: LocationStore, apiClient: APIClient) {
@@ -103,14 +100,11 @@ final class LocationTrackerManager: NSObject, ObservableObject {
         return hour >= 6
     }
 
-    // Returns true if enough time has passed since the last capture,
-    // using a shorter interval when the device is moving.
+    // Returns true if enough time has passed since the last capture.
     private func shouldCapture(_ location: CLLocation) -> Bool {
         guard let last = lastCaptureDate else { return true }
         let elapsed = Date().timeIntervalSince(last)
-        let isMoving = location.speed >= movingSpeedThreshold
-        let required = isMoving ? movingInterval : stationaryInterval
-        return elapsed >= required
+        return elapsed >= captureInterval
     }
 
     // MARK: - Tracking notification
@@ -165,27 +159,7 @@ final class LocationTrackerManager: NSObject, ObservableObject {
         }
 
         Task {
-            do {
-                let result = try await apiClient.uploadSingle(
-                    location: saved,
-                    token: token,
-                    deviceInfo: DeviceInfo.current()
-                )
-                switch result {
-                case .success(let newToken):
-                    if let t = newToken, !t.isEmpty {
-                        authStore.setToken(t)
-                    }
-                    locationStore.markUploaded(ids: [saved.id])
-                case .unauthorized:
-                    authStore.logout()
-                    stopTracking()
-                case .failure:
-                    break
-                }
-            } catch {
-                // Keep item as pending and retry on next sync cycle.
-            }
+            await syncPendingLocations()
             UIApplication.shared.endBackgroundTask(bgTask)
         }
     }

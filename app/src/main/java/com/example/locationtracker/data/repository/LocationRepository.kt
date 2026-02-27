@@ -62,7 +62,7 @@ class LocationRepository(
                 delay(Random.nextLong(1_000L, 8_000L))
             }
 
-            uploadByIdIfPossible(id)
+            uploadPendingLocations()
         }
     }
 

@@ -114,7 +114,7 @@ private struct LoginView: View {
                             Spacer().frame(height: 8)
 
                             // Title
-                            Text("Location Tracker")
+                            Text("TrackIQ")
                                 .font(.title2.weight(.bold))
                                 .foregroundColor(darkText)
                         }
