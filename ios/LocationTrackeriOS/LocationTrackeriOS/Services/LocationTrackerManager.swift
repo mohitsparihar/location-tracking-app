@@ -53,6 +53,7 @@ final class LocationTrackerManager: NSObject, ObservableObject {
     func startTrackingIfPossible() {
         guard hasRequiredPermissions else { return }
         manager.allowsBackgroundLocationUpdates = true
+        manager.showsBackgroundLocationIndicator = true
         manager.startUpdatingLocation()
         postTrackingNotification(body: "Location tracking is active.")
     }
@@ -122,19 +123,29 @@ final class LocationTrackerManager: NSObject, ObservableObject {
         if #available(iOS 15.0, *) {
             content.interruptionLevel = .passive
         }
-        let request = UNNotificationRequest(
-            identifier: Self.notificationID,
+        
+        // Immediate notification
+        let immediateRequest = UNNotificationRequest(
+            identifier: Self.notificationID + "-immediate",
             content: content,
-            trigger: nil   // nil = deliver immediately
+            trigger: nil
         )
-        UNUserNotificationCenter.current().add(request)
+        UNUserNotificationCenter.current().add(immediateRequest)
+        
+        // Repeating notification every 60 seconds
+        let repeatingTrigger = UNTimeIntervalNotificationTrigger(timeInterval: 60, repeats: true)
+        let repeatingRequest = UNNotificationRequest(
+            identifier: Self.notificationID + "-repeating",
+            content: content,
+            trigger: repeatingTrigger
+        )
+        UNUserNotificationCenter.current().add(repeatingRequest)
     }
 
     private func removeTrackingNotification() {
-        UNUserNotificationCenter.current()
-            .removeDeliveredNotifications(withIdentifiers: [Self.notificationID])
-        UNUserNotificationCenter.current()
-            .removePendingNotificationRequests(withIdentifiers: [Self.notificationID])
+        let ids = [Self.notificationID + "-immediate", Self.notificationID + "-repeating"]
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ids)
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
     }
 
     // MARK: - Location handling
@@ -162,6 +173,12 @@ final class LocationTrackerManager: NSObject, ObservableObject {
             await syncPendingLocations()
             UIApplication.shared.endBackgroundTask(bgTask)
         }
+    }
+
+    /// Verifies if the user is at the specific property within a 50-meter geofence.
+    func isUserAtProperty(currentLocation: CLLocation, targetLat: Double, targetLong: Double) -> Bool {
+        let targetLocation = CLLocation(latitude: targetLat, longitude: targetLong)
+        return currentLocation.distance(from: targetLocation) <= 50.0
     }
 }
 

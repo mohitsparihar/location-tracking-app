@@ -38,11 +38,13 @@ private struct PermissionBlockingView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Text("Location permission required")
+            Text("Missing Compliance Data")
                 .font(.title3.weight(.bold))
+                .foregroundColor(.red)
 
-            Text("This app is blocked until background location access is granted.")
+            Text("Warning: Your visit cannot be verified. This app is blocked until background location access is granted.")
                 .multilineTextAlignment(.center)
+                .foregroundColor(.red)
 
             Button("Grant Foreground Location") {
                 tracker.requestForegroundPermission()
@@ -468,19 +470,32 @@ private struct SettingsView: View {
 
                     // Menu section
                     VStack(spacing: 0) {
-                        SettingsRow(
-                            icon: "questionmark",
-                            title: "Help Center",
-                            iconBg: slateIcon,
-                            chevronColor: chevronGray
-                        )
+
+                        Button(action: {
+                            if let url = URL(string: "https://geoiq.ai/t&c") {
+                                UIApplication.shared.open(url)
+                            }
+                        }) {
+                            SettingsRow(
+                                icon: "doc.text",
+                                title: "Terms of Service",
+                                iconBg: slateIcon,
+                                chevronColor: chevronGray
+                            )
+                        }
                         Divider().padding(.leading, 68)
-                        SettingsRow(
-                            icon: "doc.text",
-                            title: "Terms of Service",
-                            iconBg: slateIcon,
-                            chevronColor: chevronGray
-                        )
+                        Button(action: {
+                            if let url = URL(string: "https://geoiq.ai/privacy-policy") {
+                                UIApplication.shared.open(url)
+                            }
+                        }) {
+                            SettingsRow(
+                                icon: "lock.shield",
+                                title: "Privacy Policy",
+                                iconBg: slateIcon,
+                                chevronColor: chevronGray
+                            )
+                        }
                     }
                     .background(Color.white)
                     .clipShape(RoundedRectangle(cornerRadius: 14))

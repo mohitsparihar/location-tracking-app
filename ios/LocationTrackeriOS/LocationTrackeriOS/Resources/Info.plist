@@ -21,11 +21,11 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>This app tracks your location in the background to record location points even when not in use.</string>
+	<string>Background location is required to automatically verify your arrival and stay duration at retail sites for business reporting.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>This app tracks your location in the background to record location points even when not in use.</string>
+	<string>Background location is required to automatically verify your arrival and stay duration at retail sites for business reporting.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app uses your location to record and upload location points.</string>
+	<string>We use your location to show nearby retail properties for inspection.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>

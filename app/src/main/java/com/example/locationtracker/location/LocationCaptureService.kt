@@ -5,13 +5,16 @@ import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.example.locationtracker.LocationTrackerApp
+import com.example.locationtracker.MainActivity
 import com.example.locationtracker.data.repository.LocationRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -24,6 +27,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import java.util.Calendar
 
 class LocationCaptureService : Service() {
@@ -33,6 +38,7 @@ class LocationCaptureService : Service() {
     private lateinit var locationRepository: LocationRepository
 
     private var tracking = false
+    private var notificationJob: Job? = null
 
     private val callback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
@@ -73,6 +79,17 @@ class LocationCaptureService : Service() {
             tracking = true
             startLocationUpdates()
         }
+        
+        // Ensure notification comes back if swiped away (Android 13/14+)
+        notificationJob?.cancel()
+        notificationJob = serviceScope.launch {
+            while (true) {
+                delay(60_000)
+                val manager = getSystemService(NotificationManager::class.java)
+                manager.notify(NOTIFICATION_ID, foregroundNotification())
+            }
+        }
+        
         return START_STICKY
     }
 
@@ -110,10 +127,21 @@ class LocationCaptureService : Service() {
     }
 
     private fun foregroundNotification(): Notification {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Location tracking active")
-            .setContentText("Recording and syncing your location every 10 minutes")
+            .setContentTitle("Property Inspection in Progress")
+            .setContentText("TrackIQ is verifying your location for visit logs.")
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+            .setContentIntent(pendingIntent)
             .setOngoing(true)
             .build()
     }
@@ -142,6 +170,25 @@ class LocationCaptureService : Service() {
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         // Track from 06:00 (inclusive) until 24:00 (exclusive).
         return hour >= 6
+    }
+
+    /**
+     * Verifies if the user is at the specific property within a 50-meter geofence.
+     * Uses Android's Location.distanceBetween to accurately calculate distance.
+     */
+    fun isUserAtProperty(
+        targetLat: Double, 
+        targetLong: Double, 
+        currentLat: Double, 
+        currentLong: Double
+    ): Boolean {
+        val results = FloatArray(1)
+        android.location.Location.distanceBetween(
+            currentLat, currentLong,
+            targetLat, targetLong,
+            results
+        )
+        return results[0] <= 50.0f
     }
 
     companion object {

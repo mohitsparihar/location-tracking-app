@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -144,19 +145,39 @@ fun LocationTrackerAppRoot(container: AppContainer) {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(fgGranted, bgGranted) {
-        if (!fgGranted) {
-            foregroundLauncher.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                )
-            )
-        } else if (!bgGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            backgroundLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+    var showDisclosure by remember { mutableStateOf(false) }
+
+    LaunchedEffect(fgGranted, bgGranted, notificationGranted) {
+        if (!fgGranted || (!bgGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)) {
+            showDisclosure = true
         } else if (!notificationGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+    }
+
+    if (showDisclosure) {
+        AlertDialog(
+            onDismissRequest = { },
+            title = { Text("Location Data Verification") },
+            text = { Text("TrackIQ collects location data to verify your site visits and generate automated property inspection reports, even when the app is closed. This ensures your visit logs are accurate and audit-ready.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDisclosure = false
+                    if (!fgGranted) {
+                        foregroundLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                            )
+                        )
+                    } else if (!bgGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        backgroundLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                    }
+                }) {
+                    Text("Continue")
+                }
+            }
+        )
     }
 
     val allPermissionsGranted = fgGranted &&
@@ -246,12 +267,16 @@ private fun PermissionBlockingScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Location permission required",
+            text = "Missing Compliance Data",
             style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.error
         )
         Spacer(modifier = Modifier.height(12.dp))
-        Text("This app is blocked until foreground and background location access is granted.")
+        Text(
+            text = "Warning: Your visit cannot be verified. This app is blocked until foreground and background location access is granted.",
+            color = MaterialTheme.colorScheme.error
+        )
         Spacer(modifier = Modifier.height(20.dp))
         Button(onClick = onRequestForeground, modifier = Modifier.fillMaxWidth()) {
             Text("Grant Foreground Location")
@@ -779,14 +804,24 @@ private fun SettingsScreen(
                     .fillMaxWidth()
                     .background(Color.White, RoundedCornerShape(14.dp))
             ) {
+
+                val context = LocalContext.current
                 SettingsMenuItem(
-                    icon = { Icon(Icons.Filled.HelpOutline, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp)) },
-                    title = "Help Center"
+                    icon = { Icon(Icons.Filled.Article, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp)) },
+                    title = "Terms of Service",
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://geoiq.ai/t&c"))
+                        context.startActivity(intent)
+                    }
                 )
                 androidx.compose.material3.HorizontalDivider(modifier = Modifier.padding(start = 68.dp))
                 SettingsMenuItem(
-                    icon = { Icon(Icons.Filled.Article, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp)) },
-                    title = "Terms of Service"
+                    icon = { Icon(Icons.Filled.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp)) },
+                    title = "Privacy Policy",
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://geoiq.ai/privacy-policy"))
+                        context.startActivity(intent)
+                    }
                 )
             }
 
@@ -821,11 +856,13 @@ private fun SettingsScreen(
 @Composable
 private fun SettingsMenuItem(
     icon: @Composable () -> Unit,
-    title: String
+    title: String,
+    onClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
