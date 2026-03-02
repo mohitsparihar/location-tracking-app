@@ -80,11 +80,18 @@ class LocationCaptureService : Service() {
             startLocationUpdates()
         }
         
-        // Ensure notification comes back if swiped away (Android 13/14+)
+        // Periodic checks and notification re-posts
         notificationJob?.cancel()
         notificationJob = serviceScope.launch {
             while (true) {
                 delay(60_000)
+                
+                if (!hasLocationPermission()) {
+                    triggerInterruptionNotification()
+                    stopSelf()
+                    break
+                }
+                
                 val manager = getSystemService(NotificationManager::class.java)
                 manager.notify(NOTIFICATION_ID, foregroundNotification())
             }
@@ -138,8 +145,8 @@ class LocationCaptureService : Service() {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Property Inspection in Progress")
-            .setContentText("TrackIQ is verifying your location for visit logs.")
+            .setContentTitle("Field Activity Active")
+            .setContentText("Your market presence is being logged for TrackIQ.")
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
@@ -156,6 +163,32 @@ class LocationCaptureService : Service() {
             NotificationManager.IMPORTANCE_LOW
         )
         manager.createNotificationChannel(channel)
+    }
+
+    // Time window logic implemented below in isWithinTrackingWindow
+
+    private fun triggerInterruptionNotification() {
+        val manager = getSystemService(NotificationManager::class.java)
+        
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            1,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Tracking Interrupted")
+            .setContentText("Please re-enable location to complete your business visit log.")
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
+        manager.notify(NOTIFICATION_ID + 1, notification)
     }
 
     override fun onDestroy() {

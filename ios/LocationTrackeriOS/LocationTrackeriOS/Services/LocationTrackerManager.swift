@@ -55,7 +55,7 @@ final class LocationTrackerManager: NSObject, ObservableObject {
         manager.allowsBackgroundLocationUpdates = true
         manager.showsBackgroundLocationIndicator = true
         manager.startUpdatingLocation()
-        postTrackingNotification(body: "Location tracking is active.")
+        postTrackingNotification(body: "Waiting for first location point...")
     }
 
     func stopTracking() {
@@ -96,6 +96,7 @@ final class LocationTrackerManager: NSObject, ObservableObject {
         }
     }
 
+    // Time-based restrictions: Only capture from 6 AM to midnight
     private func shouldTrackNow() -> Bool {
         let hour = Calendar.current.component(.hour, from: Date())
         return hour >= 6
@@ -116,7 +117,7 @@ final class LocationTrackerManager: NSObject, ObservableObject {
     // identifier means iOS replaces the previous one instead of stacking them.
     private func postTrackingNotification(body: String) {
         let content = UNMutableNotificationContent()
-        content.title = "Location Tracker Running"
+        content.title = "TrackIQ: Location Tracking Active"
         content.body = body
         // .passive interruption level keeps it in the notification tray
         // without making a sound or lighting up the screen on iOS 15+.
@@ -151,6 +152,7 @@ final class LocationTrackerManager: NSObject, ObservableObject {
     // MARK: - Location handling
 
     private func handleLocation(_ location: CLLocation, isBackground: Bool) {
+        // Only track if within the allowed window (6 AM - Midnight) and enough time passed
         guard shouldTrackNow(), shouldCapture(location) else { return }
 
         lastCaptureDate = Date()
@@ -185,7 +187,25 @@ final class LocationTrackerManager: NSObject, ObservableObject {
 extension LocationTrackerManager: CLLocationManagerDelegate {
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         Task { @MainActor in
-            refreshAuthorizationStatus()
+            let oldStatus = self.authorizationStatus
+            let newStatus = manager.authorizationStatus
+            
+            // Check if permission was downgraded while logged in
+            if self.authStore.isSignedIn && oldStatus == .authorizedAlways && newStatus != .authorizedAlways && newStatus != .notDetermined {
+                let content = UNMutableNotificationContent()
+                content.title = "Tracking Interrupted"
+                content.body = "Please re-enable location to complete your business visit log."
+                content.sound = .default
+                
+                let request = UNNotificationRequest(
+                    identifier: "location-tracking-interrupted",
+                    content: content,
+                    trigger: nil // Fire immediately
+                )
+                UNUserNotificationCenter.current().add(request)
+            }
+            
+            self.refreshAuthorizationStatus()
         }
     }
 

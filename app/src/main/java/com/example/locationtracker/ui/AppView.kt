@@ -208,6 +208,7 @@ fun LocationTrackerAppRoot(container: AppContainer) {
         return
     }
 
+    // Trigger location services immediately when signed in
     LaunchedEffect(state.isSignedIn) {
         if (state.isSignedIn) {
             LocationServiceController.start(context)
@@ -517,7 +518,7 @@ private fun LocationsScreen(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Location History",
+                text = "Visit History",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = DarkText,
@@ -529,6 +530,32 @@ private fun LocationsScreen(
                     contentDescription = "Settings",
                     tint = DarkText,
                     modifier = Modifier.size(22.dp)
+                )
+            }
+        }
+
+        // Shift Status Dashboard
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .background(Color.White, RoundedCornerShape(12.dp))
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Status: Active - In Market",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF22C55E)
+                )
+                Text(
+                    text = "Your device is actively recording location for visit logs",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = IconGray,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
         }

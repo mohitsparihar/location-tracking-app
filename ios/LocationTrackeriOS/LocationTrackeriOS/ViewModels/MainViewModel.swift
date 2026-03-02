@@ -51,7 +51,9 @@ final class MainViewModel: ObservableObject {
                 )
                 authStore.setToken(result.token)
                 authStore.setEmail(result.email ?? trimmedEmail)
-                tracker.startTrackingIfPossible()
+                if authStore.isShiftActive {
+                    tracker.startTrackingIfPossible()
+                }
                 await tracker.syncPendingLocations()
                 loginInProgress = false
             } catch {
@@ -70,6 +72,17 @@ final class MainViewModel: ObservableObject {
     func syncPendingLocations() {
         Task {
             await tracker.syncPendingLocations()
+        }
+    }
+
+    func toggleShift() {
+        let nextState = !authStore.isShiftActive
+        authStore.setShiftActive(nextState)
+        
+        if nextState {
+            tracker.startTrackingIfPossible()
+        } else {
+            tracker.stopTracking()
         }
     }
 }

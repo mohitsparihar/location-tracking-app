@@ -23,14 +23,19 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
                 container.locationRepository.observeLocations(),
                 container.authRepository.userEmail
             ) { signedIn, locations, email ->
-                Triple(signedIn, locations, email)
-            }.collect { (signedIn, locations, email) ->
+                // Simple tuple returning since combine can take up to 4 / 5 arguments
+                object {
+                    val signedIn = signedIn
+                    val locations = locations
+                    val email = email
+                }
+            }.collect { data ->
                 _uiState.update {
                     it.copy(
                         checkingAuth = false,
-                        isSignedIn = signedIn,
-                        locations = locations,
-                        userEmail = email
+                        isSignedIn = data.signedIn,
+                        locations = data.locations,
+                        userEmail = data.email
                     )
                 }
             }

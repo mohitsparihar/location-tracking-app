@@ -268,7 +268,7 @@ private struct LocationsView: View {
                     Image(systemName: "mappin.circle.fill")
                         .font(.title2)
                         .foregroundColor(purple)
-                    Text("Location History")
+                    Text("Visit History")
                         .font(.title3.weight(.bold))
                     Spacer()
                     Button(action: { showSettings = true }) {
@@ -279,6 +279,24 @@ private struct LocationsView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
+                .padding(.bottom, 16)
+
+                // Shift Status Dashboard
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Status: Active - In Market")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundColor(.green)
+                        Text("Your device is actively recording location for visit logs")
+                            .font(.caption)
+                            .foregroundColor(Color(red: 0.55, green: 0.56, blue: 0.60))
+                    }
+                    Spacer()
+                }
+                .padding(16)
+                .background(Color.white)
+                .cornerRadius(12)
+                .padding(.horizontal, 20)
                 .padding(.bottom, 16)
 
                 // Tab row

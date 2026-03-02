@@ -21,11 +21,11 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Background location is required to automatically verify your arrival and stay duration at retail sites for business reporting.</string>
+	<string>Your location is used to verify your market visits for business expansion reports and attendance logs.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Background location is required to automatically verify your arrival and stay duration at retail sites for business reporting.</string>
+	<string>Your location is used to verify your market visits for business expansion reports and attendance logs.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We use your location to show nearby retail properties for inspection.</string>
+	<string>Your location is used to verify your market visits for business expansion reports and attendance logs.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
