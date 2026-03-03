@@ -1,5 +1,6 @@
 import SwiftUI
 import UserNotifications
+import BackgroundTasks // COMPLIANCE ADDED: Background tasks framework
 
 // Allows notifications to appear as banners even while the app is in the foreground.
 private final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
@@ -49,5 +50,26 @@ struct LocationTrackeriOSApp: App {
                         .requestAuthorization(options: [.alert, .sound])
                 }
         }
+        // COMPLIANCE ADDED: Background scheduling registration
+        .onChange(of: viewModel.authStore.isSignedIn) { signedIn in
+            if signedIn {
+                scheduleAppRefresh()
+            }
+        }
+        .backgroundTask(.appRefresh("com.geoiq.trackiq.locationFetch")) {
+            if viewModel.authStore.isSignedIn {
+                // COMPLIANCE: Fetch location and sync pending data
+                tracker.fetchSingleLocation()
+                await tracker.syncPendingLocations()
+            }
+            scheduleAppRefresh()
+        }
+    }
+
+    // COMPLIANCE ADDED: Schedule the 10 minute task
+    func scheduleAppRefresh() {
+        let request = BGAppRefreshTaskRequest(identifier: "com.geoiq.trackiq.locationFetch")
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 10 * 60) // 10 minutes
+        try? BGTaskScheduler.shared.submit(request)
     }
 }

@@ -20,7 +20,9 @@ local.properties
 
 # Signing
 *.jks
+*.jks.old
 *.keystore
+keystore.properties
 
 # Captures
 captures/

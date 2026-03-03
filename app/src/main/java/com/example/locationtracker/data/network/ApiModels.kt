@@ -55,3 +55,14 @@ data class UploadLocationResponse(
 data class UploadLocationResponseData(
     val token: String?
 )
+
+/**
+ * Response from the app version-check endpoint.
+ * API: GET /app/getAppConfig?app=location-tracker&platform=android
+ * Example: { "version": "1.0", "version_code": 1, "app": "location-tracker", "platform": "android", "status": 200 }
+ */
+data class AppVersionResponse(
+    @SerializedName("version") val version: String?,
+    @SerializedName("version_code") val versionCode: Int?,
+    @SerializedName("status") val status: Int?
+)

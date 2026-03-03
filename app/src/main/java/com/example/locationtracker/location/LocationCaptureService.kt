@@ -40,30 +40,7 @@ class LocationCaptureService : Service() {
     private var tracking = false
     private var notificationJob: Job? = null
 
-    private val callback = object : LocationCallback() {
-        override fun onLocationResult(result: LocationResult) {
-            if (!isWithinTrackingWindow()) return
-            result.locations.forEach { location ->
-                serviceScope.launch {
-                    locationRepository.recordLocation(
-                        latitude = location.latitude,
-                        longitude = location.longitude,
-                        accuracy = location.accuracy,
-                        altitude = if (location.hasAltitude()) location.altitude else null,
-                        altitudeAccuracy = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && location.hasVerticalAccuracy()) {
-                            location.verticalAccuracyMeters
-                        } else {
-                            null
-                        },
-                        heading = if (location.hasBearing()) location.bearing else null,
-                        speed = if (location.hasSpeed()) location.speed else null,
-                        timestamp = location.time,
-                        isBackground = true
-                    )
-                }
-            }
-        }
-    }
+    // Continuous callback removed for compliance
 
     override fun onCreate() {
         super.onCreate()
@@ -102,17 +79,47 @@ class LocationCaptureService : Service() {
 
     @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
-        if (!hasLocationPermission()) {
-            stopSelf()
-            return
+        serviceScope.launch {
+            while (tracking) {
+                if (!hasLocationPermission()) {
+                    triggerInterruptionNotification()
+                    stopSelf()
+                    break
+                }
+                
+                if (isWithinTrackingWindow()) {
+                    try {
+                        // COMPLIANCE ADDED: 10-minute periodic fetch instead of continuous updates
+                        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                            .addOnSuccessListener { location ->
+                                if (location != null) {
+                                    serviceScope.launch {
+                                        locationRepository.recordLocation(
+                                            latitude = location.latitude,
+                                            longitude = location.longitude,
+                                            accuracy = location.accuracy,
+                                            altitude = if (location.hasAltitude()) location.altitude else null,
+                                            altitudeAccuracy = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && location.hasVerticalAccuracy()) {
+                                                location.verticalAccuracyMeters
+                                            } else {
+                                                null
+                                            },
+                                            heading = if (location.hasBearing()) location.bearing else null,
+                                            speed = if (location.hasSpeed()) location.speed else null,
+                                            timestamp = location.time,
+                                            isBackground = true
+                                        )
+                                    }
+                                }
+                            }
+                    } catch (e: Exception) {
+                        // Ignore exceptions on fetch
+                    }
+                }
+                
+                delay(TEN_MINUTES_MS)
+            }
         }
-
-        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, TEN_MINUTES_MS)
-            .setMinUpdateIntervalMillis(TEN_MINUTES_MS)
-            .setMaxUpdateDelayMillis(TEN_MINUTES_MS)
-            .build()
-
-        fusedLocationClient.requestLocationUpdates(request, callback, mainLooper)
     }
 
     private fun hasLocationPermission(): Boolean {
@@ -193,7 +200,8 @@ class LocationCaptureService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        fusedLocationClient.removeLocationUpdates(callback)
+        tracking = false
+        notificationJob?.cancel()
         serviceScope.cancel()
     }
 

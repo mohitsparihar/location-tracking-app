@@ -15,6 +15,11 @@ object ApiConfig {
 
     const val LOGIN_PATH = "user/userlogin"
 
+    // Force-update version check
+    // Returns { "version": "1.0", "version_code": 1, "status": 200 }
+    const val APP_VERSION_CHECK_URL =
+        "${API_BASE_URL}app/getAppConfig?app=location-tracker&platform=android"
+
     // Config only (currently unused)
     const val FORGOT_PASSWORD_PATH = "user/forgot-password"
     const val RESET_PASSWORD_PATH = "user/reset-password"

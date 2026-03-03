@@ -52,15 +52,22 @@ final class LocationTrackerManager: NSObject, ObservableObject {
 
     func startTrackingIfPossible() {
         guard hasRequiredPermissions else { return }
+        // COMPLIANCE ADDED: Remove continuous startUpdatingLocation for interval fetching
         manager.allowsBackgroundLocationUpdates = true
         manager.showsBackgroundLocationIndicator = true
-        manager.startUpdatingLocation()
         postTrackingNotification(body: "Waiting for first location point...")
+        fetchSingleLocation()
     }
 
     func stopTracking() {
-        manager.stopUpdatingLocation()
+        // manager.stopUpdatingLocation() // Not needed for single fetches
         removeTrackingNotification()
+    }
+
+    /// COMPLIANCE ADDED: Request a single location specifically for the 10-minute interval
+    func fetchSingleLocation() {
+        guard hasRequiredPermissions else { return }
+        manager.requestLocation()
     }
 
     func syncPendingLocations() async {

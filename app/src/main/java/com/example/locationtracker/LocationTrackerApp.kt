@@ -3,6 +3,7 @@ package com.example.locationtracker
 import android.app.Application
 import androidx.room.Room
 import com.example.locationtracker.data.local.AppDatabase
+import com.example.locationtracker.data.network.ApiService
 import com.example.locationtracker.data.network.NetworkModule
 import com.example.locationtracker.data.repository.AuthRepository
 import com.example.locationtracker.data.repository.LocationRepository
@@ -29,11 +30,14 @@ class LocationTrackerApp : Application() {
             authRepository = authRepository
         )
 
-        container = AppContainer(authRepository, locationRepository)
+        container = AppContainer(applicationContext, authRepository, locationRepository, apiService)
     }
 }
 
+// COMPLIANCE ADDED: Context is needed in container for DataStore
 data class AppContainer(
+    val context: android.content.Context,
     val authRepository: AuthRepository,
-    val locationRepository: LocationRepository
+    val locationRepository: LocationRepository,
+    val apiService: ApiService
 )

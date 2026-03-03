@@ -20,15 +20,23 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<!-- COMPLIANCE ADDED: Fleet management context added -->
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Your location is used to verify your market visits for business expansion reports and attendance logs.</string>
+	<string>TrackIQ strictly requires your location for fleet management purposes to verify market visits and generate accurate attendance logs.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Your location is used to verify your market visits for business expansion reports and attendance logs.</string>
+	<string>TrackIQ strictly requires your location for fleet management purposes to verify market visits and generate accurate attendance logs.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Your location is used to verify your market visits for business expansion reports and attendance logs.</string>
+	<string>TrackIQ strictly requires your location for fleet management purposes to verify market visits and generate accurate attendance logs.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
+		<string>fetch</string>
+		<string>processing</string>
+	</array>
+	<!-- COMPLIANCE ADDED: Background task identifier -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.geoiq.trackiq.locationFetch</string>
 	</array>
 	<key>UILaunchScreen</key>
 	<dict/>

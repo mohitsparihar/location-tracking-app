@@ -8,6 +8,12 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +21,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+// COMPLIANCE ADDED: Context power manager classes
+import android.os.PowerManager
+import android.content.Context
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,6 +32,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -41,6 +51,7 @@ import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -68,6 +79,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
@@ -76,8 +89,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -159,7 +174,7 @@ fun LocationTrackerAppRoot(container: AppContainer) {
         AlertDialog(
             onDismissRequest = { },
             title = { Text("Location Data Verification") },
-            text = { Text("TrackIQ collects location data to verify your site visits and generate automated property inspection reports, even when the app is closed. This ensures your visit logs are accurate and audit-ready.") },
+            text = { Text("TrackIQ collects location data strictly for fleet management purposes to verify your site visits and generate automated property inspection reports, even when the app is closed. This ensures your visit logs are accurate and audit-ready.") },
             confirmButton = {
                 TextButton(onClick = {
                     showDisclosure = false
@@ -211,6 +226,14 @@ fun LocationTrackerAppRoot(container: AppContainer) {
     // Trigger location services immediately when signed in
     LaunchedEffect(state.isSignedIn) {
         if (state.isSignedIn) {
+            // COMPLIANCE ADDED: Battery optimization request
+            val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !pm.isIgnoringBatteryOptimizations(context.packageName)) {
+                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                }
+                context.startActivity(intent)
+            }
             LocationServiceController.start(context)
             vm.syncPendingLocations()
         } else {
@@ -220,6 +243,17 @@ fun LocationTrackerAppRoot(container: AppContainer) {
 
     Scaffold(modifier = Modifier.fillMaxSize()) { paddingValues ->
         when {
+            state.forceUpdateRequired -> {
+                ForceUpdateScreen(
+                    currentVersion = run {
+                        try { context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "" }
+                        catch (e: Exception) { "" }
+                    },
+                    newVersion = state.serverVersion ?: "",
+                    paddingValues = paddingValues
+                )
+            }
+
             state.checkingAuth -> {
                 Box(
                     modifier = Modifier
@@ -229,6 +263,14 @@ fun LocationTrackerAppRoot(container: AppContainer) {
                 ) {
                     CircularProgressIndicator()
                 }
+            }
+
+            !state.consentGiven -> {
+                // COMPLIANCE ADDED: Employee Consent Screen
+                ConsentScreen(
+                    onAccept = { vm.acceptConsent() },
+                    paddingValues = paddingValues
+                )
             }
 
             !state.isSignedIn -> {
@@ -275,8 +317,9 @@ private fun PermissionBlockingScreen(
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = "Warning: Your visit cannot be verified. This app is blocked until foreground and background location access is granted.",
-            color = MaterialTheme.colorScheme.error
+            text = "Warning: Your visit cannot be verified. This app is blocked until foreground and background location access is granted strictly for fleet management purposes.",
+            color = MaterialTheme.colorScheme.error,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
         Spacer(modifier = Modifier.height(20.dp))
         Button(onClick = onRequestForeground, modifier = Modifier.fillMaxWidth()) {
@@ -304,6 +347,74 @@ private fun PermissionBlockingScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Open App Settings")
+        }
+    }
+}
+
+// COMPLIANCE ADDED: Consent Screen implementation
+@Composable
+private fun ConsentScreen(
+    onAccept: () -> Unit,
+    paddingValues: PaddingValues = PaddingValues()
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(LightBackground)
+            .padding(paddingValues),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.LocationOn,
+                    contentDescription = null,
+                    tint = Purple,
+                    modifier = Modifier.size(48.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Employee Location Consent",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = DarkText,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "TrackIQ collects location data exclusively for fleet management purposes. Your location is tracked every 10 minutes between 6 AM and Midnight to ensure safety, verify site visits, and optimize routes.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextGray,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = onAccept,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Purple)
+                ) {
+                    Text(
+                        text = "I Accept",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }
@@ -772,6 +883,7 @@ private fun SettingsScreen(
     onLogout: () -> Unit,
     paddingValues: PaddingValues = PaddingValues()
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -832,7 +944,6 @@ private fun SettingsScreen(
                     .background(Color.White, RoundedCornerShape(14.dp))
             ) {
 
-                val context = LocalContext.current
                 SettingsMenuItem(
                     icon = { Icon(Icons.Filled.Article, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp)) },
                     title = "Terms of Service",
@@ -849,6 +960,41 @@ private fun SettingsScreen(
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://geoiq.ai/privacy-policy"))
                         context.startActivity(intent)
                     }
+                )
+            }
+
+
+            // App version
+            val appVersion = remember {
+                try {
+                    context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "—"
+                } catch (e: Exception) { "—" }
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(LightBackground, RoundedCornerShape(14.dp))
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Settings,
+                    contentDescription = null,
+                    tint = IconGray,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "App Version",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = DarkText,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = appVersion,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextGray
                 )
             }
 
@@ -913,6 +1059,217 @@ private fun SettingsMenuItem(
             contentDescription = null,
             tint = IconGray,
             modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Force Update Screen
+// ---------------------------------------------------------------------------
+
+private val UpdateAccent  = Color(0xFF6B21F5)  // same purple as the app
+private val UpdateBg      = Color(0xFF0D0730)   // deep dark background
+private val UpdateCardBg  = Color(0xFF1A1040)   // slightly lighter card
+
+@Composable
+internal fun ForceUpdateScreen(
+    currentVersion: String,
+    newVersion: String,
+    paddingValues: PaddingValues = PaddingValues()
+) {
+    val context = LocalContext.current
+    // The Play Store link for this app (used when "Update Now" is tapped)
+    val playStoreUrl = "https://play.google.com/store/apps/details?id=com.geoiq.trackiq"
+
+    // Pulsing scale animation for the icon ring
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue  = 1.12f,
+        animationSpec = infiniteRepeatable(
+            animation  = tween(900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse_scale"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(UpdateBg, Color(0xFF1B0D55))
+                )
+            )
+            .padding(paddingValues),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            // ── Animated icon ring ──────────────────────────────────────
+            Box(
+                modifier = Modifier
+                    .scale(pulseScale)
+                    .size(110.dp)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                UpdateAccent.copy(alpha = 0.35f),
+                                Color.Transparent
+                            )
+                        ),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .background(UpdateAccent, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector    = Icons.Filled.SystemUpdate,
+                        contentDescription = "Update available",
+                        tint           = Color.White,
+                        modifier       = Modifier.size(40.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // ── Headline ────────────────────────────────────────────────
+            Text(
+                text       = "Update Required",
+                fontSize   = 28.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color      = Color.White,
+                textAlign  = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // ── Sub-text ────────────────────────────────────────────────
+            Text(
+                text = "A new version of TrackIQ is available with important improvements and security fixes. Please update to continue using the app.",
+                fontSize  = 15.sp,
+                color     = Color.White.copy(alpha = 0.72f),
+                textAlign = TextAlign.Center,
+                lineHeight = 22.sp
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ── Version comparison badge ────────────────────────────────
+            if (currentVersion.isNotBlank() || newVersion.isNotBlank()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Current (installed) version chip
+                    Box(
+                        modifier = Modifier
+                            .background(Color.White.copy(alpha = 0.12f), RoundedCornerShape(50))
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "Installed",
+                                fontSize = 10.sp,
+                                color = Color.White.copy(alpha = 0.55f),
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "v$currentVersion",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+
+                    // Arrow
+                    Text(
+                        text = "  →  ",
+                        fontSize = 20.sp,
+                        color = UpdateAccent,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    // New version chip
+                    Box(
+                        modifier = Modifier
+                            .background(UpdateAccent.copy(alpha = 0.25f), RoundedCornerShape(50))
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "Latest",
+                                fontSize = 10.sp,
+                                color = Color.White.copy(alpha = 0.75f),
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "v$newVersion",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // ── CTA button ──────────────────────────────────────────────
+            Button(
+                onClick = {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(playStoreUrl))
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(intent)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape  = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = UpdateAccent)
+            ) {
+                Icon(
+                    imageVector        = Icons.Filled.SystemUpdate,
+                    contentDescription = null,
+                    tint               = Color.White,
+                    modifier           = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text       = "Update Now",
+                    fontSize   = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color.White
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun UpdateFeatureRow(emoji: String, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(text = emoji, fontSize = 18.sp)
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text      = text,
+            fontSize  = 14.sp,
+            color     = Color.White.copy(alpha = 0.85f),
+            fontWeight = FontWeight.Medium
         )
     }
 }

@@ -29,6 +29,20 @@ struct UploadResponseData: Decodable {
     let token: String?
 }
 
+/// Response from GET /app/getAppConfig?app=location-tracker&platform=ios
+/// Example: { "version": "1.0", "version_code": 1, "status": 200 }
+struct AppVersionResponse: Decodable {
+    let version: String?
+    let versionCode: Int?
+    let status: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case version
+        case versionCode = "version_code"
+        case status
+    }
+}
+
 struct DeviceInfo {
     let deviceId: String
     let deviceName: String
@@ -88,6 +102,17 @@ final class APIClient {
         }
 
         return (token, body?.resolvedData?.email)
+    }
+
+    /// Fetches the app config from the server to check if a force update is required.
+    /// No auth token needed — this is a public endpoint.
+    func checkAppVersion() async -> AppVersionResponse? {
+        var request = URLRequest(url: ApiConfig.appVersionCheckURL)
+        request.httpMethod = "GET"
+        guard let (data, response) = try? await session.data(for: request),
+              let http = response as? HTTPURLResponse,
+              (200..<300).contains(http.statusCode) else { return nil }
+        return try? JSONDecoder().decode(AppVersionResponse.self, from: data)
     }
 
     func uploadSingle(location: StoredLocation, token: String, deviceInfo: DeviceInfo) async throws -> UploadResult {

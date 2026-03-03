@@ -7,9 +7,17 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if !tracker.hasRequiredPermissions {
+            if viewModel.forceUpdateRequired {
+                ForceUpdateView(
+                    currentVersion: (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "",
+                    newVersion: viewModel.serverVersion ?? ""
+                )
+            } else if !tracker.hasRequiredPermissions {
                 PermissionBlockingView(tracker: tracker)
                     .padding(16)
+            } else if !viewModel.consentGiven {
+                // COMPLIANCE ADDED: Requires consent before login
+                ConsentView(viewModel: viewModel)
             } else if !viewModel.authStore.isSignedIn {
                 LoginView(viewModel: viewModel)
             } else {
@@ -42,7 +50,7 @@ private struct PermissionBlockingView: View {
                 .font(.title3.weight(.bold))
                 .foregroundColor(.red)
 
-            Text("Warning: Your visit cannot be verified. This app is blocked until background location access is granted.")
+            Text("Warning: Your visit cannot be verified. This app is blocked until background location access is granted strictly for fleet management purposes.")
                 .multilineTextAlignment(.center)
                 .foregroundColor(.red)
 
@@ -84,6 +92,49 @@ private struct PermissionBlockingView: View {
         @unknown default:
             return "Unknown permission state"
         }
+    }
+}
+
+// COMPLIANCE ADDED: Explicit consent screen 
+private struct ConsentView: View {
+    @ObservedObject var viewModel: MainViewModel
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Image(systemName: "mappin.and.ellipse")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 60, height: 60)
+                .foregroundColor(Color(red: 0.42, green: 0.13, blue: 0.96))
+
+            Text("Employee Location Consent")
+                .font(.title2.weight(.bold))
+                .multilineTextAlignment(.center)
+
+            Text("TrackIQ collects location data exclusively for fleet management purposes. Your location is tracked every 10 minutes between 6 AM and Midnight to ensure safety, verify site visits, and optimize routes.")
+                .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 20)
+
+            Button(action: {
+                viewModel.acceptConsent()
+            }) {
+                Text("I Accept")
+                    .font(.headline.weight(.bold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(red: 0.42, green: 0.13, blue: 0.96))
+                    )
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(red: 0.95, green: 0.95, blue: 0.97).ignoresSafeArea())
     }
 }
 
@@ -518,6 +569,27 @@ private struct SettingsView: View {
                     .background(Color.white)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
 
+                    // App Version row
+                    let appVersion = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "—"
+                    HStack(spacing: 12) {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 15))
+                            .foregroundColor(Color(red: 0.61, green: 0.64, blue: 0.69))
+                        Text("App Version")
+                            .font(.subheadline)
+                            .foregroundColor(Color(red: 0.10, green: 0.10, blue: 0.18))
+                        Spacer()
+                        Text(appVersion)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(textGray)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color(red: 0.94, green: 0.94, blue: 0.96))
+                    )
+
                     // Log out button
                     Button(action: { viewModel.logout() }) {
                         HStack(spacing: 8) {
@@ -572,5 +644,134 @@ private struct SettingsRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
+    }
+}
+
+// MARK: – Force Update Screen
+
+private struct ForceUpdateView: View {
+    let currentVersion: String
+    let newVersion: String
+
+    private let accent   = Color(red: 0.42, green: 0.13, blue: 0.96)
+    private let darkBg   = Color(red: 0.05, green: 0.03, blue: 0.18)
+    private let darkerBg = Color(red: 0.11, green: 0.06, blue: 0.33)
+    private let cardBg   = Color(red: 0.10, green: 0.06, blue: 0.25)
+
+    @State private var pulsing = false
+
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [darkBg, darkerBg],
+                startPoint: .top, endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                Spacer()
+
+                // ── Animated icon ──────────────────────────────────────
+                ZStack {
+                    Circle()
+                        .fill(accent.opacity(0.20))
+                        .frame(width: 110, height: 110)
+                        .scaleEffect(pulsing ? 1.15 : 1.0)
+                        .animation(
+                            Animation.easeInOut(duration: 0.9).repeatForever(autoreverses: true),
+                            value: pulsing
+                        )
+
+                    Circle()
+                        .fill(accent)
+                        .frame(width: 80, height: 80)
+
+                    Image(systemName: "arrow.down.app.fill")
+                        .font(.system(size: 36))
+                        .foregroundColor(.white)
+                }
+                .onAppear { pulsing = true }
+
+                Spacer().frame(height: 32)
+
+                // ── Headline ───────────────────────────────────────────
+                Text("Update Required")
+                    .font(.system(size: 28, weight: .black))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+
+                Spacer().frame(height: 12)
+
+                // ── Sub-text ───────────────────────────────────────────
+                Text("A new version of TrackIQ is available with important improvements and security fixes. Please update to continue using the app.")
+                    .font(.system(size: 15))
+                    .foregroundColor(.white.opacity(0.72))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(5)
+                    .padding(.horizontal, 28)
+
+                Spacer().frame(height: 24)
+
+                // ── Version comparison badges ──────────────────────────
+                if !currentVersion.isEmpty || !newVersion.isEmpty {
+                    HStack(spacing: 0) {
+                        // Installed chip
+                        VStack(spacing: 2) {
+                            Text("Installed")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(.white.opacity(0.55))
+                            Text("v\(currentVersion)")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Capsule().fill(.white.opacity(0.12)))
+
+                        // Arrow
+                        Text("  →  ")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(accent)
+
+                        // Latest chip
+                        VStack(spacing: 2) {
+                            Text("Latest")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(.white.opacity(0.75))
+                            Text("v\(newVersion)")
+                                .font(.system(size: 16, weight: .heavy))
+                                .foregroundColor(.white)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Capsule().fill(accent.opacity(0.28)))
+                    }
+                }
+
+                Spacer().frame(height: 32)
+
+                // ── CTA button ─────────────────────────────────────────
+                Button(action: {
+                    UIApplication.shared.open(ApiConfig.appStoreURL)
+                }) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "arrow.down.app.fill")
+                            .font(.system(size: 18))
+                        Text("Update Now")
+                            .font(.system(size: 17, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(accent)
+                    )
+                }
+                .padding(.horizontal, 28)
+
+                Spacer()
+            }
+        }
     }
 }
